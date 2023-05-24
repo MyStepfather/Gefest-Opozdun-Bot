@@ -1,51 +1,228 @@
-<!-- <?php
-require 'vendor/autoload.php';
-use Telegram\Bot\Api;
+<?php
+
+require_once 'vendor/autoload.php';
+// use Telegram\Bot\Api;
+use TelegramBot\Api\Client;
+use TelegramBot\Api\Types\Inline\InlineKeyboardMarkup;
 
 $token = 'AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
-$bot = new Api($token);
+$bot = new Client($token, ['polling' => true]);
 $groupChatId = -740721555;
 
-$messageText = [
-    'title' => "Новый опозднун!",
-    'name' => '',
-    'reason' => '',
-    'time' => '',
-    'emoji' => "\u{263A}"
+// Клавиатура с командами
+$commandsKeyboard = [
+    [
+        ['text' => 'День за свой счет', 'callback_data' => '/weekend'],
+        ['text' => 'На удаленке', 'callback_data' => '/distant'],
+    ],
+    [
+        ['text' => 'Буду позже', 'callback_data' => '/be_later'],
+        ['text' => 'Опаздываю', 'callback_data' => '/late'],
+    ],
+    [
+        ['text' => 'Командировка', 'callback_data' => '/business_trip'],
+        ['text' => 'В отпуске', 'callback_data' => '/vacation'],
+        ['text' => 'Заболел', 'callback_data' => '/pain'],
+    ]
 ];
 
-$step = '';
-
-$update = $bot->getWebhookUpdates();
-if ($update->has('message')) {
+// Обработчик команды /start
+$bot->on(function ($update) use ($bot, $commandsKeyboard) {
     $message = $update->getMessage();
     $chatId = $message->getChat()->getId();
-    $text = $message->getText();
+    $messageText = 'Привет! Выберите одну из команд:';
+    $keyboard = new InlineKeyboardMarkup($commandsKeyboard);
+    $bot->sendMessage($chatId, $messageText, null, false, null, $keyboard);
+}, function ($update) {
+    $message = $update->getMessage();
+    return $message !== null && mb_stripos($message->getText(), '/start') !== false;
+});
 
-    if ($text === '/start') {
-        $bot->sendMessage(['chat_id' => $chatId, 'text' => "Ваши имя и фамилия"]);
-        $step = 'name';
-    } elseif ($step === 'name') {
-        $messageText['name'] = $text;
-        $bot->sendMessage(['chat_id' => $chatId, 'text' => "Причина опоздания"]);
-        $step = 'reason';
-    } elseif ($step === 'reason') {
-        $messageText['reason'] = $text;
-        $bot->sendMessage(['chat_id' => $chatId, 'text' => "На сколько опаздываете?"]);
-        $step = 'time';
-    } elseif ($step === 'time') {
-        $messageText['time'] = $text;
-        $step = '';
-        $finalMessage = "<b>{$messageText['title']}</b>\n\u{1F464} Имя - {$messageText['name']}\n\u{2753} Причина - {$messageText['reason']}\n\u{23F0} Опаздывает на - {$messageText['time']}";
-        $bot->sendMessage(['chat_id' => $chatId, 'text' => "Ваше сообщение отправлено Костиной А. и Царьковой Е. \u{263A}"]);
-        $bot->sendMessage(['chat_id' => $groupChatId, 'text' => $finalMessage, 'parse_mode' => 'HTML']);
+// Обработчик нажатия на кнопки
+$bot->on('callback_query', function ($update) use ($bot, $groupChatId) {
+    $callbackQuery = $update->getCallbackQuery();
+    $chatId = $callbackQuery->getMessage()->getChat()->getId();
+    $data = $callbackQuery->getData();
+    $messageText = [];
+
+    if ($data === '/weekend') {
+        $messageText['title'] = 'День за свой счет';
+        $bot->sendMessage($chatId, $questions['weekend']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, $questions['weekend']['q2']);
+            $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                $message = $update->getMessage();
+                $messageText['q2'] = $message->getText();
+                $bot->sendMessage($chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' . mb_convert_encoding('&#x1F49B;', 'UTF-8', 'HTML-ENTITIES'));
+                $finalMessage = "<b>{$messageText['title']}</b>\n"
+                    . "&#x1F464; Имя - {$messageText['q1']}\n"
+                    . "&#x2753; Дней взял - {$messageText['q2']}";
+                $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+            });
+        });
+    } elseif ($data === '/distant') {
+        $messageText['title'] = 'На удаленке';
+        $bot->sendMessage($chatId, $questions['distant']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, $questions['weekend']['q2']);
+            $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                $message = $update->getMessage();
+                $messageText['q2'] = $message->getText();
+                $bot->sendMessage($chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' . mb_convert_encoding('&#x1F49B;', 'UTF-8', 'HTML-ENTITIES'));
+                $finalMessage = "<b>{$messageText['title']}</b>\n"
+                    . "&#x1F464; Имя - {$messageText['q1']}\n"
+                    . "&#x2753; Дней на удаленке - {$messageText['q2']}";
+                $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+            });
+        });
+    } elseif ($data === '/late') {
+        $messageText['title'] = 'Опаздываю';
+        $bot->sendMessage($chatId, $questions['late']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, $questions['late']['q2']);
+            $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                $message = $update->getMessage();
+                $messageText['q2'] = $message->getText();
+                $bot->sendMessage($chatId, $questions['late']['q3']);
+                $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                    $message = $update->getMessage();
+                    $messageText['q3'] = $message->getText();
+                    $bot->sendMessage($chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' . mb_convert_encoding('&#x1F49B;', 'UTF-8', 'HTML-ENTITIES'));
+                    $finalMessage = "<b>{$messageText['title']}</b>\n"
+                        . "&#x1F464; Имя - {$messageText['q1']}\n"
+                        . "&#x23F0; Опаздывает на - {$messageText['q2']}\n"
+                        . "&#x2753; Причина - {$messageText['q3']}";
+                    $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+                });
+            });
+        });
+    } elseif ($data === '/be_later') {
+        $messageText['title'] = 'Буду позже';
+        $bot->sendMessage($chatId, $questions['be_later']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, $questions['be_later']['q2']);
+            $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                $message = $update->getMessage();
+                $messageText['q2'] = $message->getText();
+                $bot->sendMessage($chatId, $questions['be_later']['q3']);
+                $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                    $message = $update->getMessage();
+                    $messageText['q3'] = $message->getText();
+                    $bot->sendMessage($chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' . mb_convert_encoding('&#x1F49B;', 'UTF-8', 'HTML-ENTITIES'));
+                    $finalMessage = "<b>{$messageText['title']}</b>\n"
+                        . "&#x1F464; Имя - {$messageText['q1']}\n"
+                        . "&#x23F0; Будет в офисе - {$messageText['q2']}\n"
+                        . "&#x2753; Причина - {$messageText['q3']}";
+                    $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+                });
+            });
+        });
+    } elseif ($data === '/pain') {
+        $messageText['title'] = 'Заболел';
+        $bot->sendMessage($chatId, $questions['pain']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, 'Выздоравливай скорее! Не забудь сообщить своему непосредственному руководителю и взять больничный :)');
+            $finalMessage = "<b>{$messageText['title']}</b>\n"
+                . "&#x1F464; Имя - {$messageText['q1']}";
+            $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+        });
+    } elseif ($data === '/vacation') {
+        $messageText['title'] = 'В отпуске';
+        $bot->sendMessage($chatId, $questions['vacation']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, $questions['vacation']['q2']);
+            $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                $message = $update->getMessage();
+                $messageText['q2'] = $message->getText();
+                $bot->sendMessage($chatId, 'Хорошего отпуска! Ждем в офисе ' . mb_convert_encoding('&#x1F49B;', 'UTF-8', 'HTML-ENTITIES'));
+                $finalMessage = "<b>{$messageText['title']}</b>\n"
+                    . "&#x1F464; Имя - {$messageText['q1']}\n"
+                    . "&#x1F4C5; Даты - {$messageText['q2']}";
+                $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+            });
+        });
+    } elseif ($data === '/business_trip') {
+        $messageText['title'] = 'Командировка';
+        $bot->sendMessage($chatId, $questions['business_trip']['q1']);
+        $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+            $message = $update->getMessage();
+            $messageText['q1'] = $message->getText();
+            $bot->sendMessage($chatId, $questions['business_trip']['q2']);
+            $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                $message = $update->getMessage();
+                $messageText['q2'] = $message->getText();
+                $bot->sendMessage($chatId, $questions['business_trip']['q3']);
+                $bot->on(function ($update) use ($bot, $chatId, &$messageText) {
+                    $message = $update->getMessage();
+                    $messageText['q3'] = $message->getText();
+                    $bot->sendMessage($chatId, 'Удачной командировки! Ждем в офисе ' . mb_convert_encoding('&#x1F49B;', 'UTF-8', 'HTML-ENTITIES'));
+                    $finalMessage = "<b>{$messageText['title']}</b>\n"
+                        . "&#x1F464; Имя - {$messageText['q1']}\n"
+                        . "&#x1F30D; Город - {$messageText['q2']}\n"
+                        . "&#x1F4C5; Даты - {$messageText['q3']}";
+                    $bot->sendMessage($groupChatId, $finalMessage, 'HTML');
+                });
+            });
+        });
     }
-} -->
+});
 
-/* В этом коде мы используем библиотеку telegram-bot-sdk для работы с Telegram API. Вы можете установить эту библиотеку с помощью Composer:
+// Список команд
+$commands = [
+    ['command' => '/start', 'description' => 'Старт'],
+    ['command' => '/weekend', 'description' => 'День за свой счет'],
+    ['command' => '/distant', 'description' => 'На удаленке'],
+    ['command' => '/late', 'description' => 'Опаздываю'],
+    ['command' => '/be_later', 'description' => 'Буду позже'],
+    ['command' => '/pain', 'description' => 'Заболел'],
+    ['command' => '/vacation', 'description' => 'В отпуске'],
+    ['command' => '/business_trip', 'description' => 'Командировка'],
+];
 
-composer require irazasyed/telegram-bot-sdk
-Копировать
-Код создает объект Api с помощью токена вашего бота и устанавливает начальные значения для переменных messageText и step. Затем он получает обновления от Telegram API с помощью метода getWebhookUpdates и проверяет, есть ли в обновлении сообщение. Если сообщение есть, код извлекает идентификатор чата и текст сообщения и выполняет соответствующие действия в зависимости от текущего значения переменной step.
+// Список вопросов
+$questions = [
+    'weekend' => [
+        'q1' => 'Представься, пожалуйста!',
+        'q2' => 'Сколько дней ты берешь за свой счет?'
+    ],
+    'distant' => [
+        'q1' => 'Представься, пожалуйста!',
+        'q2' => 'Сколько дней ты будешь на удаленке?'
+    ],
+    'late' => [
+        'q1' => 'Представься, пожалуйста!',
+        'q2' => 'На сколько ты опаздываешь? (укажи время в минутах/часах)',
+        'q3' => 'Подскажи, пожалуйста, почему опаздываешь'
+    ],
+    'be_later' => [
+        'q1' => 'Представься, пожалуйста!',
+        'q2' => 'В какое время ты планируешь быть в офисе?',
+        'q3' => 'Укажи, пожалуйста, причину (Если встреча, то укажи клиента)',
+    ],
+    'pain' => [
+        'q1' => 'Представься, пожалуйста!',
+    ],
+    'vacation' => [
+        'q1' => 'Представься, пожалуйста!',
+        'q2' => 'Пожалуйста, напиши даты отпуска в формате дд.мм-дд.мм',
+    ],
+    'business_trip' => [
+        'q1' => 'Представься, пожалуйста!',
+        'q2' => 'Пожалуйста, напиши даты командировки в формате дд.мм-дд.мм',
+    ],
+];
 
-Обратите внимание, что этот код использует механизм вебхуков для получения обновлений от Telegram API. Это означает, что вы должны настроить вебхук для вашего бота и разместить этот код на сервере с доступом к Интернету. Если вы хотите использовать механизм опроса (polling) вместо вебхуков, вы можете изменить код соответствующим образом. */
+// $bot->run();
+?>
