@@ -37,36 +37,42 @@ const restart = { reply_markup: { inline_keyboard: restartButton } };
 
 
 const messageText = {};
+let msgDel = [];
+let step = '';
 
-// Обработчик команды /start
-/* bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  const messageText = 'Привет! Выберите одну из команд:';
-  const options = { reply_markup: { inline_keyboard: commandsKeyboard } };
-  bot.sendMessage(chatId, messageText, options);
-}); */
-
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
+  step = msg.message_id;
+  msgDel.push(step);
+  console.log(msgDel);
 
   if (users[userId]) {
     messageText['userName'] = users[userId];
-    bot.sendMessage(chatId, `Привет, ${users[userId]}! Выбери команду:`, options);
-
+    step = await bot.sendMessage(chatId, `Привет, ${users[userId]}! Выбери команду:`, options);
+    msgDel.push(step.message_id);
+    console.log(msgDel);
   } else {
-      bot.sendMessage(chatId, 'Привет! Как тебя зовут? Напиши свои Имя и Фамилию =)');
-      bot.once('message', (msg) => {
+      step = await bot.sendMessage(chatId, 'Привет! Как тебя зовут? Напиши свои Имя и Фамилию =)');
+      msgDel.push(step.message_id);
+      console.log(msgDel);
+      bot.once('message', async (msg) => {
         if (!msg.text.startsWith('/') && !users[userId]) {
+          step = msg.message_id;
+          msgDel.push(step);
           users[userId] = msg.text;
           messageText['userName'] = msg.text;
           fs.writeFileSync(usersFile, JSON.stringify(users));
-          bot.sendMessage(chatId, `Привет, ${users[userId]}! Выбери команду:`, options);
+          step = await bot.sendMessage(chatId, `Привет, ${users[userId]}! Выбери команду:`, options);
+          msgDel.push(step.message_id);
+          console.log(msgDel);
+          msgDel.forEach(async (del) => {
+            await bot.deleteMessage(chatId, del);
+          })
         }
       })
     }
 });
-
 
 
 // Обработчик нажатия на кнопки
@@ -150,16 +156,6 @@ bot.on('callback_query', (query) => {
     });
   }
 });
-
-/* bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from.id;
-  
-  if
-  }
-}); */
-
-
 
 // Список команд
 const commands = [
