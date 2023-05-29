@@ -61,58 +61,54 @@ bot.onText(/\/start/, async (msg) => {
   const userId = msg.from.id;
   let step = msg.message_id;
   msgDel.push(step);
-
-  let userFound = false;
+  console.log(users)
   for (let userKey in users) {
     if (users[userKey].userId === userId) {
-      step = await bot.sendMessage(chatId, `Привет, ${users[userKey].user_name}! Выбери команду:`, options);
+      step = bot.sendMessage(chatId, `Привет, ${users[userKey].user_name}! Выбери команду:`, options);
       msgDel.push(step.message_id);
-      userFound = true;
-      console.log(msgDel);
+      // console.log(msgDel);
       for (let i=0; i<msgDel.length; i++) {
         users[userKey].messages_id.push(msgDel[i]);
       }
       fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
         if (err) throw err;
       });
-      console.log(users[userKey]);
+      // console.log(users[userKey]);
       break;
-    }
-  }
-
-  if (!userFound) {
-    step = await bot.sendMessage(chatId, 'Привет! Как тебя зовут? Напиши свои Имя и Фамилию =)');
-    msgDel.push(step.message_id);
-
-    bot.once('message', async (msg) => {
-      const userId = msg.from.id;
-      let userName = msg.text;
-      step = msg.message_id;
-      msgDel.push(step);
-      if (!userName.startsWith('/')) {
-        addUser(userId, userName);
-        step = await bot.sendMessage(chatId, `Привет, ${userName}! Выбери команду:`, options);
-        msgDel.push(step.message_id);
-        for (let userKey in users) {
-          if (users[userKey].userId === userId) {
-            for (let i=0; i<msgDel.length; i++) {
-              users[userKey].messages_id.push(msgDel[i]);
+    } else {
+      step = await bot.sendMessage(chatId, 'Привет! Как тебя зовут? Напиши свои Имя и Фамилию =)');
+      msgDel.push(step.message_id);
+  
+      bot.once('message', async (msg) => {
+        const userId = msg.from.id;
+        let userName = msg.text;
+        step = msg.message_id;
+        msgDel.push(step);
+        if (!userName.startsWith('/')) {
+          addUser(userId, userName);
+          step = await bot.sendMessage(chatId, `Привет, ${userName}! Выбери команду:`, options);
+          msgDel.push(step.message_id);
+          for (let userKey in users) {
+            if (users[userKey].userId === userId) {
+              for (let i=0; i<msgDel.length; i++) {
+                users[userKey].messages_id.push(msgDel[i]);
+              }
+              console.log(users[userKey]);
+              fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
+                if (err) throw err;
+              });
             }
-            console.log(users[userKey]);
-            fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
-              if (err) throw err;
-            });
           }
         }
-      }
-    });
+      });
+    }
   }
 });
-
 
 // Обработчик нажатия на кнопки
 bot.on('callback_query', async (query) => {
   const userId = query.from.id;
+  // JSON.parse(fs.readFileSync(usersFile));
   for (let userKey in users) {
     if (users[userKey].userId === userId) {
       const chatId = query.message.chat.id;
@@ -121,35 +117,29 @@ bot.on('callback_query', async (query) => {
       messageText.title = commandDescription;
       messageText['userName'] = users[userKey].user_name;
       // console.log(msgDel)
-    
+      users[userKey].messages_id
     
       if (query.data === '/weekend') {
+        console.log(msgDel);
         step = await bot.sendMessage(chatId, `${questions.weekend.q1}`);
-        msgDel.push(step.message_id);
+        users[userKey].messages_id.push(step.message_id);
         bot.once('message', async (msg) => {
           messageText['q1'] = msg.text;
           step = msg.message_id;
-          msgDel.push(step);
+          users[userKey].messages_id.push(step);
           step = await bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
           // console.log(step);
-          msgDel.push(step.message_id);
+          users[userKey].messages_id.push(step.message_id);
           let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Дней взял - ${messageText.q1}`
-          bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+          await bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
           // bot.sendMessage(chatId, 'Отправить снова', restart)
-          for (let i=0; i<msgDel.length; i++) {
-            users[userKey].messages_id.push(msgDel[i]);
-          }
-          fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
-            if (err) throw err;
-          });
-
+          
           users[userKey].messages_id.forEach((del) => {
             console.log(del);
             bot.deleteMessage(chatId, del);
+          
           })
-          fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
-            if (err) throw err;
-          });
+          users[userKey].messages_id = [];
           msgDel = [];
 
         });
