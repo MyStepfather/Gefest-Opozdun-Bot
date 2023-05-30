@@ -2,12 +2,14 @@ const fs = require('fs');
 const TelegramApi = require('node-telegram-bot-api');
 const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
 const bot = new TelegramApi(token, {polling: true});
-const groupChatId = -740721555;
+const groupChatId = -740721555; /* -805376942 */
 
 const usersFile = 'users.json';
 let users = {};
-let userCount = 1;
-let msgDel = [];
+if (fs.existsSync(usersFile)) {
+  users = JSON.parse(fs.readFileSync(usersFile));
+}
+
 
 // Клавиатура с командами
 const commandsKeyboard = [
@@ -35,179 +37,167 @@ const restart = { reply_markup: { inline_keyboard: restartButton } };
 
 
 const messageText = {};
-let step = '';
-
-if (fs.existsSync(usersFile)) {
-  users = JSON.parse(fs.readFileSync(usersFile));
-  userCount = Object.keys(users).length + 1;
-}
-
-function addUser(userId, userName) {
-  let user = {
-      userId: userId,
-      user_name: userName,
-      messages_id: []
-  };
-  users[`user_${userCount}`] = user;
-  userCount++;
-  fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
-      if (err) throw err;
-      console.log('User added to file');
-  });
-}
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
-  let step = msg.message_id;
-  msgDel.push(step);
-  console.log(users)
-  for (let userKey in users) {
-    if (users[userKey].userId === userId) {
-      step = bot.sendMessage(chatId, `Привет, ${users[userKey].user_name}! Выбери команду:`, options);
-      msgDel.push(step.message_id);
-      // console.log(msgDel);
-      for (let i=0; i<msgDel.length; i++) {
-        users[userKey].messages_id.push(msgDel[i]);
-      }
-      fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
-        if (err) throw err;
-      });
-      // console.log(users[userKey]);
-      break;
-    } else {
-      step = await bot.sendMessage(chatId, 'Привет! Как тебя зовут? Напиши свои Имя и Фамилию =)');
-      msgDel.push(step.message_id);
-  
-      bot.once('message', async (msg) => {
-        const userId = msg.from.id;
-        let userName = msg.text;
-        step = msg.message_id;
-        msgDel.push(step);
-        if (!userName.startsWith('/')) {
-          addUser(userId, userName);
-          step = await bot.sendMessage(chatId, `Привет, ${userName}! Выбери команду:`, options);
-          msgDel.push(step.message_id);
-          for (let userKey in users) {
-            if (users[userKey].userId === userId) {
-              for (let i=0; i<msgDel.length; i++) {
-                users[userKey].messages_id.push(msgDel[i]);
-              }
-              console.log(users[userKey]);
-              fs.writeFile(usersFile, JSON.stringify(users, null, 2), (err) => {
-                if (err) throw err;
-              });
-            }
+
+  if (users[userId]) {
+    messageText['userName'] = users[userId];
+    await bot.sendMessage(chatId, `Привет, ${users[userId]}! Выбери команду:`, options);
+
+  } else {
+      await bot.sendMessage(chatId, 'Привет! Как тебя зовут? Напиши свои Имя и Фамилию =)');
+      bot.once('message', async (msg_name) => {
+        if (msg_name.from.id == msg.from.id) {
+          if (!msg_name.text.startsWith('/') && !users[userId]) {
+            users[userId] = msg_name.text;
+            messageText['userName'] = msg_name.text;
+            fs.writeFileSync(usersFile, JSON.stringify(users));
+            await bot.sendMessage(msg_name.chat.id, `Привет, ${users[userId]}! Выбери команду:`, options);
           }
-        }
+        } else {
+            await bot.sendMessage(chatId, 'Повтори, нажми еще раз СТАРТ, пожалуйста' + String.fromCodePoint(0x1F49B))
+          }
+          
       });
     }
-  }
 });
+
 
 // Обработчик нажатия на кнопки
-bot.on('callback_query', async (query) => {
+bot.on('callback_query', (query) => {
+  const chatId = query.message.chat.id;
+  const command = query.data;
   const userId = query.from.id;
-  // JSON.parse(fs.readFileSync(usersFile));
-  for (let userKey in users) {
-    if (users[userKey].userId === userId) {
-      const chatId = query.message.chat.id;
-      const command = query.data;
-      const commandDescription = commands.find((c) => c.command === command).description;
-      messageText.title = commandDescription;
-      messageText['userName'] = users[userKey].user_name;
-      // console.log(msgDel)
-      users[userKey].messages_id
-    
-      if (query.data === '/weekend') {
-        console.log(msgDel);
-        step = await bot.sendMessage(chatId, `${questions.weekend.q1}`);
-        users[userKey].messages_id.push(step.message_id);
-        bot.once('message', async (msg) => {
-          messageText['q1'] = msg.text;
-          step = msg.message_id;
-          users[userKey].messages_id.push(step);
-          step = await bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
-          // console.log(step);
-          users[userKey].messages_id.push(step.message_id);
-          let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Дней взял - ${messageText.q1}`
-          await bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
-          // bot.sendMessage(chatId, 'Отправить снова', restart)
-          
-          users[userKey].messages_id.forEach((del) => {
-            console.log(del);
-            bot.deleteMessage(chatId, del);
-          
-          })
-          users[userKey].messages_id = [];
-          msgDel = [];
+  const commandDescription = commands.find((c) => c.command === command).description;
+  messageText.title = commandDescription;
+  messageText['userName'] = users[userId];
 
-        });
-    
-      } else if (query.data === '/distant') {
-          bot.sendMessage(chatId, `${questions.distant.q1}`);
-          bot.once('message', (msg) => {
-            messageText['q1'] = msg.text;
-            bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
-            let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Дней на удаленке - ${messageText.q1}`
-            bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'})
-          });
-    
-      } else if (query.data === '/late') {
-          bot.sendMessage(chatId, `${questions.late.q1}`);
-          bot.once('message', (msg) => {
-            messageText['q1'] = msg.text;
-        
-            bot.sendMessage(chatId, `${questions.late.q2}`);
-            bot.once('message', (msg) => {
-              messageText['q2'] = msg.text;
-              bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B));
-              let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x23F0)} Опаздывает на - ${messageText.q1}\n${String.fromCodePoint(0x2753)} Причина - ${messageText.q2}`
-              bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
-            });
-          });
-    
-      } else if (query.data === '/be_later') {
-        bot.sendMessage(chatId, `${questions.be_later.q1}`);
-        bot.once('message', (msg) => {
-          messageText['q1'] = msg.text;
-      
-          bot.sendMessage(chatId, `${questions.be_later.q2}`);
-          bot.once('message', (msg) => {
-            messageText['q2'] = msg.text;
-            bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
-            let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x23F0)} Будет в офисе - ${messageText.q1}\n${String.fromCodePoint(0x2753)} Причина - ${messageText.q2}`
-            bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
-          });
-        });
-    
-      } else if (query.data === '/pain') {
-          bot.sendMessage(chatId, 'Выздоравливай скорее! Не забудь сообщить своему непосредственному руководителю и взять больничный :)'/*  + String.fromCodePoint(0x1F49B) */);
-          let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}`;
-          bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
-    
-      } else if (query.data === '/vacation') {
-        bot.sendMessage(chatId, `${questions.vacation.q1}`);
-        bot.once('message', (msg) => {
-          messageText['q1'] = msg.text;
-          bot.sendMessage(chatId, 'Хорошего отпуска! Ждем в офисе ' + String.fromCodePoint(0x1F49B));
-          let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Даты отпуска - ${messageText.q1}`;
-          bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
-        });
-    
-      } else if (query.data === '/business_trip') {
-        bot.sendMessage(chatId, `${questions.business_trip.q1}`);
-        bot.once('message', (msg) => {
-          messageText['q1'] = msg.text;
-          bot.sendMessage(chatId, 'Хорошей командировки! Ждем в офисе ' + String.fromCodePoint(0x1F49B));
-          let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Даты командировки - ${messageText.q1}`;
-          bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
-        });
+
+  if (query.data === '/weekend') {
+    bot.sendMessage(chatId, `${questions.weekend.q1}`);
+    bot.once('message', (msg) => {
+      if (userId == msg.from.id) {
+        messageText['q1'] = msg.text;
+        bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
+        let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Дней взял - ${messageText.q1}`
+        bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+        setTimeout(() => {
+          bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз' + String.fromCodePoint(0x1FAF6), options);
+        }, 2000);  
+      } else {
+        bot.sendMessage(chatId, 'Очень извиняемся! Выберите команду еще раз ' + String.fromCodePoint(0x1F49B), options)
       }
-    }
+    });
+
+  } else if (query.data === '/distant') {
+      bot.sendMessage(chatId, `${questions.distant.q1}`);
+      bot.once('message', (msg) => {
+        if (userId == msg.from.id) {
+          messageText['q1'] = msg.text;
+          bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
+          let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Дней на удаленке - ${messageText.q1}`
+          bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'})
+          setTimeout(() => {
+            bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз' + String.fromCodePoint(0x1FAF6), options);
+          }, 2000);  
+        } else {
+          bot.sendMessage(chatId, 'Очень извиняемся! Выберите команду еще раз ' + String.fromCodePoint(0x1F49B), options)
+        }
+      });
+
+  } else if (query.data === '/late') {
+      bot.sendMessage(chatId, `${questions.late.q1}`);
+      bot.once('message', (msg) => {
+
+        messageText['q1'] = msg.text;
+    
+        bot.sendMessage(chatId, `${questions.late.q2}`);
+        bot.once('message', (msg) => {
+          if (userId == msg.from.id) {
+            messageText['q2'] = msg.text;
+            bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B));
+            let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x23F0)} Опаздывает на - ${messageText.q1}\n${String.fromCodePoint(0x2753)} Причина - ${messageText.q2}`
+            bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+            setTimeout(() => {
+              bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз' + String.fromCodePoint(0x1FAF6), options);
+            }, 2000); 
+          } else {
+            bot.sendMessage(chatId, 'Очень извиняемся! Выберите команду еще раз ' + String.fromCodePoint(0x1F49B), options)
+          }
+        });
+      });
+
+  } else if (query.data === '/be_later') {
+    bot.sendMessage(chatId, `${questions.be_later.q1}`);
+    bot.once('message', (msg) => {
+      messageText['q1'] = msg.text;
+  
+      bot.sendMessage(chatId, `${questions.be_later.q2}`);
+      bot.once('message', (msg) => {
+        if (userId == msg.from.id) {
+          messageText['q2'] = msg.text;
+          bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
+          let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x23F0)} Будет в офисе - ${messageText.q1}\n${String.fromCodePoint(0x2753)} Причина - ${messageText.q2}`
+          bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+          setTimeout(() => {
+            bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз' + String.fromCodePoint(0x1FAF6), options);
+          }, 2000); 
+        } else {
+          bot.sendMessage(chatId, 'Очень извиняемся! Выберите команду еще раз ' + String.fromCodePoint(0x1F49B), options)
+        }
+      });
+    });
+
+  } else if (query.data === '/pain') {
+      bot.sendMessage(chatId, 'Выздоравливай скорее! Не забудь сообщить своему непосредственному руководителю и взять больничный :)'/*  + String.fromCodePoint(0x1F49B) */);
+      let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}`;
+      bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+
+  } else if (query.data === '/vacation') {
+    bot.sendMessage(chatId, `${questions.vacation.q1}`);
+    bot.once('message', (msg) => {
+      if (userId == msg.from.id) {
+        messageText['q1'] = msg.text;
+        bot.sendMessage(chatId, 'Хорошего отпуска! Ждем в офисе ' + String.fromCodePoint(0x1F49B));
+        let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Даты отпуска - ${messageText.q1}`;
+        bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+        setTimeout(() => {
+          bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз' + String.fromCodePoint(0x1FAF6), options);
+        }, 2000); 
+      } else {
+        bot.sendMessage(chatId, 'Очень извиняемся! Выберите команду еще раз ' + String.fromCodePoint(0x1F49B), options)
+      }
+    });
+
+  } else if (query.data === '/business_trip') {
+    bot.sendMessage(chatId, `${questions.business_trip.q1}`);
+    bot.once('message', (msg) => {
+      if (userId == msg.from.id) {
+        messageText['q1'] = msg.text;
+        bot.sendMessage(chatId, 'Хорошей командировки! Ждем в офисе ' + String.fromCodePoint(0x1F49B));
+        let finalMessage = `<b>${messageText.title}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${messageText.userName}\n${String.fromCodePoint(0x2753)} Даты командировки - ${messageText.q1}`;
+        bot.sendMessage(groupChatId, finalMessage, {parse_mode: 'HTML'});
+        setTimeout(() => {
+          bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз' + String.fromCodePoint(0x1FAF6), options);
+        }, 2000); 
+      } else {
+        bot.sendMessage(chatId, 'Очень извиняемся! Выберите команду еще раз ' + String.fromCodePoint(0x1F49B), options)
+      }
+    });
   }
 });
+
+/* bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
   
+  if
+  }
+}); */
+
+
 
 // Список команд
 const commands = [
