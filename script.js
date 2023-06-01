@@ -127,7 +127,7 @@ bot.on('message', (msg) => {
 
       bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
       setTimeout(() => {
-        bot.sendMessage(chatId, 'Мы записали ваш прошлый ответ. Это окно с выбором понадобится вам в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
+        bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
       }, 2000); 
       bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
