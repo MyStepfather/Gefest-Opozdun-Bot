@@ -3,7 +3,7 @@ const TelegramApi = require('node-telegram-bot-api');
 const { send } = require('process');
 const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
 const bot = new TelegramApi(token, {polling: true});
-const GROUP_CHAT_ID = '-805376942';
+const GROUP_CHAT_ID = '-1001961186421';
 const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
 messageText = {};
@@ -61,15 +61,19 @@ const questions = {
   ]
 }
 
+// let decline = ['/start']
+
 let userAnswers = {};
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  if (users[chatId]) {
-    bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
-  } else {
-    bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
-  }  
+  if (!userAnswers[chatId]) {
+    if (users[chatId]) {
+      bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
+    } else {
+      bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
+    }  
+  }
 });
 
 bot.on('callback_query', (query) => {
@@ -89,12 +93,18 @@ bot.on('message', (msg) => {
     fs.writeFile('users.json', JSON.stringify(users), (err) => {
         if (err) throw err;
     });
+    console.log(`Добавлен новый пользователь - ${users.chatId}!`)
     bot.sendMessage(chatId, `Привет, ${msg.text}!\nВыбери команду:`, options)
   }
   
   if (userAnswers.hasOwnProperty(chatId)) {
-    userAnswers[chatId].answers.push(msg.text);
-    userAnswers[chatId].currentQuestionIndex++;
+    if (msg.text !== '/start') {
+      userAnswers[chatId].answers.push(msg.text);
+      userAnswers[chatId].currentQuestionIndex++;
+    } /* else {
+      bot.sendMessage(chatId, 'Это команда старт! Напиши ответ =)');
+    } */
+    
     
     if (userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length) {
       askQuestion(chatId);
@@ -128,9 +138,16 @@ bot.on('message', (msg) => {
       bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
       setTimeout(() => {
         bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
-      }, 2000); 
-      bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
-      bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      }, 2000);
+      try {
+        bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+        bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      } catch (error) {
+        bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+        bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+        console.log(error);
+      } 
+
 
 
       delete userAnswers[chatId];
