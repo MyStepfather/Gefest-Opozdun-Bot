@@ -1,9 +1,9 @@
 const fs = require('fs');
 const TelegramApi = require('node-telegram-bot-api');
 const { send } = require('process');
-const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
+const token = '5902147445:AAHgf5H0ZoGZ1uuMtUnTWaJShuFtNsmu7BQ';
 const bot = new TelegramApi(token, {polling: true});
-const GROUP_CHAT_ID = '-1001961186421';
+// const GROUP_CHAT_ID = '-1001961186421';
 const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
 messageText = {};
@@ -65,16 +65,17 @@ const questions = {
 
 let userAnswers = {};
 
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  if (!userAnswers[chatId]) {
-    if (users[chatId]) {
-      bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
-    } else {
-      bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
-    }  
-  }
-});
+// bot.onText(/\/start/, (msg) => {
+//   const chatId = msg.chat.id;
+//   if (!userAnswers[chatId]) {
+//     if (users[chatId]) {
+//       console.log(userAnswers)
+//       bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
+//     } else {
+//       bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
+//     }  
+//   }
+// });
 
 bot.on('callback_query', (query) => {
   const chatId = query.message.chat.id;
@@ -87,76 +88,97 @@ bot.on('callback_query', (query) => {
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
-
-  if (!users[chatId] && msg.text !== '/start'  ) {
-    users[chatId] = msg.text;
-    fs.writeFile('users.json', JSON.stringify(users), (err) => {
-        if (err) throw err;
-    });
-    console.log(`Добавлен новый пользователь - ${users.chatId}!`)
-    bot.sendMessage(chatId, `Привет, ${msg.text}!\nВыбери команду:`, options)
-  }
   
+  if (msg.text === '/start') {
+    if (!userAnswers[chatId]) {
+      if (users[chatId]) {
+        console.log(userAnswers)
+        bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
+      } else {
+        bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
+      }  
+    }
+  }
+  if (!users[chatId] && msg.text !== '/start') {
+
+    if (/^[A-Za-zА-Яа-я]+\s[A-Za-zА-Яа-я]+$/.test(msg.text)) {
+      users[chatId] = msg.text;
+      fs.writeFile('users.json', JSON.stringify(users), (err) => {
+          if (err) throw err;
+      });
+      console.log(`Добавлен новый пользователь - ${users[chatId]}!`)
+      bot.sendMessage(chatId, `Привет, ${msg.text}!\nВыбери команду:`, options)
+    } else {
+        bot.sendMessage(chatId, `Просьба ввести Имя и Фамилию`)
+    }
+  }
   if (userAnswers.hasOwnProperty(chatId)) {
     if (msg.text !== '/start') {
       userAnswers[chatId].answers.push(msg.text);
       userAnswers[chatId].currentQuestionIndex++;
-    } /* else {
-      bot.sendMessage(chatId, 'Это команда старт! Напиши ответ =)');
-    } */
-    
-    
-    if (userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length) {
-      askQuestion(chatId);
     } else {
-      let finalMessage;
-      
-      switch (userAnswers[chatId].category) {
-        case "Буду позже":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Будет в офисе - ${userAnswers[chatId].answers[0]}\n${String.fromCodePoint(0x2753)} Причина - ${userAnswers[chatId].answers[1]}`;
-          break;
-        case "Опаздываю":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Опаздывает на - ${userAnswers[chatId].answers[0]}\n${String.fromCodePoint(0x2753)} Причина - ${userAnswers[chatId].answers[1]}`;
-          break
-        case "Заболел":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Самочувствие - ${userAnswers[chatId].answers[0]}`;
-          break
-        case "На удаленке":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Дней на удаленке - ${userAnswers[chatId].answers[0]}`;
-          break
-        case "Командировка":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Даты командировки - ${userAnswers[chatId].answers[0]}`;
-          break
-        case "В отпуске":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Даты отпуска - ${userAnswers[chatId].answers[0]}`;
-          break
-        case "День за свой счет":
-          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Дней взял - ${userAnswers[chatId].answers[0]}`;
-          break
+        switch (userAnswers[chatId].currentQuestionIndex) {
+          case '0':
+            userAnswers[chatId].currentQuestionIndex = 0;
+            break
+          case '1':
+            userAnswers[chatId].currentQuestionIndex = 1;
+            break
+          case '2':
+            userAnswers[chatId].currentQuestionIndex = 2;
+            break
+        }
       }
-
-      bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
-      setTimeout(() => {
-        bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
-      }, 2000);
-      try {
-        bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
-        bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
-      } catch (error) {
-        bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
-        bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
-        console.log(error);
-      } 
-
-
-
-      delete userAnswers[chatId];
-    }
   }
+  if (userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length) {
+
+    askQuestion(chatId);
+  } else {
+    let finalMessage;
+    
+    switch (userAnswers[chatId].category) {
+      case "Буду позже":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Будет в офисе - ${userAnswers[chatId].answers[0]}\n${String.fromCodePoint(0x2753)} Причина - ${userAnswers[chatId].answers[1]}`;
+        break;
+      case "Опаздываю":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Опаздывает на - ${userAnswers[chatId].answers[0]}\n${String.fromCodePoint(0x2753)} Причина - ${userAnswers[chatId].answers[1]}`;
+        break
+      case "Заболел":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Самочувствие - ${userAnswers[chatId].answers[0]}`;
+        break
+      case "На удаленке":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Дней на удаленке - ${userAnswers[chatId].answers[0]}`;
+        break
+      case "Командировка":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Даты командировки - ${userAnswers[chatId].answers[0]}`;
+        break
+      case "В отпуске":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Даты отпуска - ${userAnswers[chatId].answers[0]}`;
+        break
+      case "День за свой счет":
+        finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[chatId]}\n${String.fromCodePoint(0x23F0)} Дней взял - ${userAnswers[chatId].answers[0]}`;
+        break
+    }
+
+    bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
+    setTimeout(() => {
+      bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
+    }, 2000);
+    try {
+      // bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+    } catch (error) {
+      // bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+      bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+      console.log(error);
+    } 
+    delete userAnswers[chatId];
+  } 
 });
+
+
 
 function askQuestion(chatId) {
   const question = questions[userAnswers[chatId].category][userAnswers[chatId].currentQuestionIndex];
-  
   bot.sendMessage(chatId, question);
 }
