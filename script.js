@@ -1,9 +1,9 @@
 const fs = require('fs');
 const TelegramApi = require('node-telegram-bot-api');
 const { send } = require('process');
-const token = '5902147445:AAHgf5H0ZoGZ1uuMtUnTWaJShuFtNsmu7BQ';
+const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
 const bot = new TelegramApi(token, {polling: true});
-// const GROUP_CHAT_ID = '-1001961186421';
+const GROUP_CHAT_ID = '-1001961186421';
 const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
 messageText = {};
@@ -165,10 +165,10 @@ bot.on('message', (msg) => {
       bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
     }, 2000);
     try {
-      // bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
     } catch (error) {
-      // bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+      bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       console.log(error);
     } 
