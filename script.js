@@ -96,7 +96,6 @@ bot.on('message', (msg) => {
   if (msg.text === '/start') {
     if (!userAnswers[chatId]) {
       if (users[chatId]) {
-        console.log(users)
         bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
       } else {
         bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
@@ -107,10 +106,11 @@ bot.on('message', (msg) => {
 
     if (/^[A-Za-zА-Яа-яЁё]+\s[A-Za-zА-Яа-яЁё]+$/.test(msg.text)) {
       users[chatId] = msg.text;
+      console.log(users)
       fs.writeFile('users.json', JSON.stringify(users), (err) => {
           if (err) throw err;
       });
-      console.log(`Добавлен новый пользователь - ${users[chatId]}! - ${users}`)
+      console.log(`Добавлен новый пользователь - ${users[chatId]}!`)
       bot.sendMessage(chatId, `Привет, ${users[chatId]}!\nВыбери команду:`, options)
     } else {
         bot.sendMessage(chatId, `Просьба ввести Имя и Фамилию`)
@@ -136,7 +136,6 @@ bot.on('message', (msg) => {
   }
   
   if (userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length) {
-    // console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
     askQuestion(chatId);
   } else {
     console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
