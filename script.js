@@ -80,9 +80,13 @@ let userAnswers = {};
 bot.on('callback_query', (query) => {
   const chatId = query.message.chat.id;
 
-  if (questions.hasOwnProperty(query.data)) {
-    userAnswers[chatId] = { category: query.data, answers: [], currentQuestionIndex: 0 };
-    askQuestion(chatId);
+  if (users[chatId]) {
+    if (questions.hasOwnProperty(query.data)) {
+      userAnswers[chatId] = { category: query.data, answers: [], currentQuestionIndex: 0 };
+      askQuestion(chatId);
+    }
+  } else {
+    bot.sendMessage(chatId, 'Нажмите Старт в меню ниже!')
   }
 });
 
@@ -92,7 +96,7 @@ bot.on('message', (msg) => {
   if (msg.text === '/start') {
     if (!userAnswers[chatId]) {
       if (users[chatId]) {
-        console.log(userAnswers)
+        console.log(users)
         bot.sendMessage(chatId, `Привет, ${users[chatId]}! О чем расскажешь?`, options)
       } else {
         bot.sendMessage(chatId, 'Представься, пожалуйста! Как тебя зовут?\nПришли свои Имя и Фамилию');
@@ -101,13 +105,13 @@ bot.on('message', (msg) => {
   }
   if (!users[chatId] && msg.text !== '/start') {
 
-    if (/^[A-Za-zА-Яа-я]+\s[A-Za-zА-Яа-я]+$/.test(msg.text)) {
+    if (/^[A-Za-zА-Яа-яЁё]+\s[A-Za-zА-Яа-яЁё]+$/.test(msg.text)) {
       users[chatId] = msg.text;
       fs.writeFile('users.json', JSON.stringify(users), (err) => {
           if (err) throw err;
       });
-      console.log(`Добавлен новый пользователь - ${users[chatId]}!`)
-      bot.sendMessage(chatId, `Привет, ${msg.text}!\nВыбери команду:`, options)
+      console.log(`Добавлен новый пользователь - ${users[chatId]}! - ${users}`)
+      bot.sendMessage(chatId, `Привет, ${users[chatId]}!\nВыбери команду:`, options)
     } else {
         bot.sendMessage(chatId, `Просьба ввести Имя и Фамилию`)
     }
@@ -130,10 +134,12 @@ bot.on('message', (msg) => {
         }
       }
   }
+  
   if (userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length) {
-
+    // console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
     askQuestion(chatId);
   } else {
+    console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
     let finalMessage;
     
     switch (userAnswers[chatId].category) {
