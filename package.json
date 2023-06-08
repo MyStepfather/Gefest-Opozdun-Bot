@@ -12,7 +12,8 @@
     "file-system": "^2.2.2",
     "mysql": "^2.18.1",
     "node-telegram-bot-api": "^0.61.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "path": "^0.12.7"
   },
   "description": ""
 }

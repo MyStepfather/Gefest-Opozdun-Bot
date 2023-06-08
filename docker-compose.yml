@@ -1,0 +1,12 @@
+version: '3'
+services:
+
+  opozdun:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    restart: always
+    tty: true
+    volumes:
+      - ./:/app
+

@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const TelegramApi = require('node-telegram-bot-api');
 const { send } = require('process');
 const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
@@ -9,7 +10,7 @@ let users = {};
 messageText = {};
 
 
-fs.readFile('users.json', (err, data) => {
+fs.readFile(path.resolve('users.json'), (err, data) => {
   if (err) throw err;
   users = JSON.parse(data);
 });
@@ -92,6 +93,7 @@ bot.on('callback_query', (query) => {
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
+console.log(msg);
   
   if (msg.text === '/start') {
     if (!userAnswers[chatId]) {
@@ -107,7 +109,8 @@ bot.on('message', (msg) => {
     if (/^[A-Za-zА-Яа-яЁё]+\s[A-Za-zА-Яа-яЁё]+$/.test(msg.text)) {
       users[chatId] = msg.text;
       console.log(users)
-      fs.writeFile('users.json', JSON.stringify(users), (err) => {
+console.log(path.resolve('users.json'))
+      fs.writeFile(path.resolve('users.json'), JSON.stringify(users), (err) => {
           if (err) throw err;
       });
       console.log(`Добавлен новый пользователь - ${users[chatId]}!`)
