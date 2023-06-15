@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const TelegramApi = require('node-telegram-bot-api');
 const { send } = require('process');
-const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
+const token = '5902147445:AAHWNw8KGhaH3zFnDVm9iw8ETqTeWgg6inQ';
 const bot = new TelegramApi(token, {polling: true});
-const GROUP_CHAT_ID = '-1001961186421';
+// const GROUP_CHAT_ID = '-1001961186421';
 const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
 messageText = {};
@@ -93,7 +93,6 @@ bot.on('callback_query', (query) => {
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
-console.log(msg);
   
   if (msg.text === '/start') {
     if (!userAnswers[chatId]) {
@@ -120,10 +119,11 @@ console.log(path.resolve('users.json'))
     }
   }
   if (userAnswers.hasOwnProperty(chatId)) {
-    if (msg.text !== '/start') {
+    if (msg.text && msg.text !== '/start') {
       userAnswers[chatId].answers.push(msg.text);
       userAnswers[chatId].currentQuestionIndex++;
     } else {
+        bot.sendMessage(chatId, `Просьба текстом`);
         switch (userAnswers[chatId].currentQuestionIndex) {
           case '0':
             userAnswers[chatId].currentQuestionIndex = 0;
@@ -141,7 +141,7 @@ console.log(path.resolve('users.json'))
   if (userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length) {
     askQuestion(chatId);
   } else {
-    console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
+    // console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
     let finalMessage;
     
     switch (userAnswers[chatId].category) {
@@ -173,10 +173,10 @@ console.log(path.resolve('users.json'))
       bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
     }, 2000);
     try {
-      bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      // bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
     } catch (error) {
-      bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+      // bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       console.log(error);
     } 
