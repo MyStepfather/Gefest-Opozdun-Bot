@@ -188,12 +188,12 @@ bot.on('message', (msg) => {
     }, 2000);
     try {
       bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
-      bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      // bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
       writeLog(chatId);
 
     } catch (error) {
       bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
-      bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
+      // bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       console.log(error);
     }
     // console.log(userAnswers[chatId]);
