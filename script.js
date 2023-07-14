@@ -2,12 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const TelegramApi = require('node-telegram-bot-api');
 const { send } = require('process');
-const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk'; /*  5902147445:AAHWNw8KGhaH3zFnDVm9iw8ETqTeWgg6inQ*/
+const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';/*   '5902147445:AAHWNw8KGhaH3zFnDVm9iw8ETqTeWgg6inQ'; */
 const bot = new TelegramApi(token, {polling: true});
 const GROUP_CHAT_ID = '-1001961186421';
-const TEST_GROUP_CHAT_ID = '-740721555';
+// const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
+// let userLog = {};
 messageText = {};
+const fileLogs = path.resolve('logs.txt');
 
 
 fs.readFile(path.resolve('users.json'), (err, data) => {
@@ -83,7 +85,8 @@ bot.on('callback_query', (query) => {
 
   if (users[chatId]) {
     if (questions.hasOwnProperty(query.data)) {
-      userAnswers[chatId] = { category: query.data, answers: [], currentQuestionIndex: 0 };
+      userAnswers[chatId] = {date: null, userName: null, category: query.data, answers: [], questions: [], currentQuestionIndex: 0 };
+      // let dataLog = userAnswers[chatId]; 
       askQuestion(chatId);
     }
   } else {
@@ -93,7 +96,7 @@ bot.on('callback_query', (query) => {
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
-  
+  // console.log(msg);
   if (msg.text === '/start') {
     if (!userAnswers[chatId]) {
       if (users[chatId]) {
@@ -107,12 +110,16 @@ bot.on('message', (msg) => {
 
     if (/^[A-Za-zА-Яа-яЁё]+\s[A-Za-zА-Яа-яЁё]+$/.test(msg.text)) {
       users[chatId] = msg.text;
-      console.log(users)
-console.log(path.resolve('users.json'))
+      // console.log(users);
+      // console.log(path.resolve('users.json'));
       fs.writeFile(path.resolve('users.json'), JSON.stringify(users), (err) => {
           if (err) throw err;
       });
-      console.log(`Добавлен новый пользователь - ${users[chatId]}!`)
+      
+      console.log(`Добавлен новый пользователь ${users[chatId]}!`);
+      // appendEntry(newUserLog);
+      console.log(`Добавлен новый пользователь - ${users[chatId]}!`);
+
       bot.sendMessage(chatId, `Привет, ${users[chatId]}!\nВыбери команду:`, options)
     } else {
         bot.sendMessage(chatId, `Просьба ввести Имя и Фамилию`)
@@ -120,8 +127,14 @@ console.log(path.resolve('users.json'))
   }
   if (userAnswers.hasOwnProperty(chatId)) {
     if (msg.text && msg.text !== '/start') {
+      userAnswers[chatId].date = getDate(msg.date*1000);
+      userAnswers[chatId].userName = users[chatId];
       userAnswers[chatId].answers.push(msg.text);
+      // userAnswers[chatId].questions = [];
+      userAnswers[chatId].questions.push(questions[userAnswers[chatId].category][userAnswers[chatId].currentQuestionIndex]);
       userAnswers[chatId].currentQuestionIndex++;
+
+      
     } else {
         bot.sendMessage(chatId, `Просьба текстом`);
         switch (userAnswers[chatId].currentQuestionIndex) {
@@ -143,6 +156,7 @@ console.log(path.resolve('users.json'))
   } else {
     // console.log(userAnswers[chatId].currentQuestionIndex < questions[userAnswers[chatId].category].length)
     let finalMessage;
+
     
     switch (userAnswers[chatId].category) {
       case "Буду позже":
@@ -168,20 +182,25 @@ console.log(path.resolve('users.json'))
         break
     }
 
-    bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B))
+    bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B));
     setTimeout(() => {
       bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
     }, 2000);
     try {
       bot.sendMessage(GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, finalMessage, {parse_mode: 'HTML'});
+      writeLog(chatId);
+
     } catch (error) {
       bot.sendMessage(GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       bot.sendMessage(TEST_GROUP_CHAT_ID, 'Произошла ошибка, пожалуйста, повтори отправку позже!', {parse_mode: 'HTML'});
       console.log(error);
-    } 
-    delete userAnswers[chatId];
-  } 
+    }
+    // console.log(userAnswers[chatId]);
+
+
+  }
+
 });
 
 
@@ -189,4 +208,26 @@ console.log(path.resolve('users.json'))
 function askQuestion(chatId) {
   const question = questions[userAnswers[chatId].category][userAnswers[chatId].currentQuestionIndex];
   bot.sendMessage(chatId, question);
+}
+
+function getDate(milliseconds) {
+  let date = new Date(milliseconds);
+
+  let day = date.getDate();
+  let month = date.getMonth() + 1; 
+  let year = date.getFullYear();
+  let hours = date.getHours();
+  let minutes = date.getMinutes();
+  
+  let formattedDate = `${day}-${month}-${year}, ${hours}:${minutes}`;
+  return formattedDate;
+}
+
+let logCounter = 0;
+
+function writeLog(chatId) {
+
+  fs.appendFileSync(fileLogs, `${logCounter}. ${JSON.stringify(userAnswers[chatId])},\n\n`);
+  delete userAnswers[chatId];
+  ++logCounter;
 }
