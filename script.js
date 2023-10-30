@@ -9,6 +9,19 @@ const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
 messageText = {};
 
+function checkInternetConnection() {
+  axios.get('http://www.google.com', { timeout: 5000 })
+      .then(() => {
+          // Если соединение установлено, ничего не делаем
+      })
+      .catch(() => {
+          // Если соединение потеряно, перезапускаем поллинг
+          bot.stopPolling();
+          setTimeout(() => {
+              bot.startPolling();
+          }, 5000); // Попробуйте установить здесь интервал, который лучше всего подходит для вашего случая
+      });
+}
 
 fs.readFile(path.resolve('users.json'), (err, data) => {
   if (err) throw err;
