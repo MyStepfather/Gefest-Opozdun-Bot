@@ -14,16 +14,17 @@ const fileLogs = path.resolve('logs.txt');
 function checkInternetConnection() {
   axios.get('http://www.google.com', { timeout: 5000 })
       .then(() => {
-          // Если соединение установлено, ничего не делаем
+
       })
       .catch(() => {
-          // Если соединение потеряно, перезапускаем поллинг
           bot.stopPolling();
           setTimeout(() => {
               bot.startPolling();
-          }, 5000); // Попробуйте установить здесь интервал, который лучше всего подходит для вашего случая
+          }, 5000);
       });
 }
+
+setInterval(checkInternetConnection, 5000);
 
 fs.readFile(path.resolve('users.json'), (err, data) => {
   if (err) throw err;
