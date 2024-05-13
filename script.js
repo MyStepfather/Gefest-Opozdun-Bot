@@ -197,7 +197,7 @@ bot.on('message', (msg) => {
         break
     }
 
-    bot.sendMessage(chatId, 'Мы передали твой ответ Кате Царьковой и Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B));
+    bot.sendMessage(chatId, 'Мы передали твой ответ Алене Костиной. Ждем в офисе ' + String.fromCodePoint(0x1F49B));
     setTimeout(() => {
       bot.sendMessage(chatId, 'Мы записали твой прошлый ответ. Это окно с выбором понадобится тебе в следующий раз ' + String.fromCodePoint(0x1FAF6), options);
     }, 2000);
