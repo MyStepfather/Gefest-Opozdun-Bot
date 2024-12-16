@@ -9,5 +9,5 @@ services:
     tty: true
     volumes:
       - ./:/app
-      - ./users.json:app/users.json
+      - ./users.json:/app/users.json
 
