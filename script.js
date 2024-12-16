@@ -4,10 +4,10 @@ const axios = require('axios');
 const TelegramApi = require('node-telegram-bot-api');
 const token = '5980630603:AAH3ikiRkcAP3qVpKjZA9mfh1IC95pHGxVk';
 // test token
-// const token = '5949552471:AAHrmzTqKYzuy-ihVtm6Zy43-A-K-xovAts';
+// const token = '7740171963:AAHPnWnOXhoCLTv_nJEe82eXlXfF0c6Okhs';
 const bot = new TelegramApi(token, {polling: true});
 const GROUP_CHAT_ID = '-1001961186421';
-const TEST_GROUP_CHAT_ID = '-740721555';
+// const TEST_GROUP_CHAT_ID = '-740721555';
 let users = {};
 let messageText = {};
 const fileLogs = path.resolve('logs.txt');
@@ -49,6 +49,7 @@ const commandsKeyboard = [
   ],
   [
       { text: 'День за свой счет', callback_data: 'День за свой счет' },
+      { text: 'На монтаже', callback_data: 'На монтаже'}
   ]
 ];
 const options = { reply_markup: { inline_keyboard: commandsKeyboard } };
@@ -76,6 +77,10 @@ const questions = {
   ],
   "День за свой счет": [
     "Сколько дней ты берешь за свой счет?"
+  ],
+  "На монтаже": [
+    "Во сколько планируешь быть в офисе?",
+    "Что за монтаж (проект)?"
   ]
 }
 
@@ -171,6 +176,9 @@ bot.on('message', (msg) => {
           break
         case "День за свой счет":
           finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[username]}\n${String.fromCodePoint(0x23F0)} Дней взял - ${userAnswers[chatId].answers[0]}\n@${username}`;
+          break
+        case "На монтаже":
+          finalMessage = `<b>${userAnswers[chatId].category}</b>\n${String.fromCodePoint(0x1F464)} Имя - ${users[username]}\n${String.fromCodePoint(0x23F0)} Будет в офисе - ${userAnswers[chatId].answers[0]}\n${String.fromCodePoint(0x2753)} Проект - ${userAnswers[chatId].answers[1]}\n@${username}`;
           break
       }
 
